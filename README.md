@@ -1,9 +1,8 @@
-
 # ⚖️ AI Legal Assistant Chatbot (GenAI + RAG)
 
 This is a Python-based Legal Assistant chatbot that uses **Retrieval-Augmented Generation (RAG)** to answer legal questions from the **Indian Penal Code (IPC)**.
 
-It parses a legal PDF, chunks the text, embeds it into vectors using Hugging Face's `sentence-transformers`, stores it in a **FAISS** index, and uses a Hugging Face **LLM** (Zephyr 7B) to answer user queries.
+It parses a legal PDF, chunks the text, embeds it into vectors using Hugging Face's `sentence-transformers`, stores it in a **FAISS** index, and uses a Hugging Face **LLM** (`HuggingFaceH4/zephyr-7b-beta`) to answer user queries.
 
 ## 🚀 Features
 
@@ -11,8 +10,8 @@ It parses a legal PDF, chunks the text, embeds it into vectors using Hugging Fac
 - ✂️ Chunks long legal text into manageable pieces
 - 🧠 Embeds chunks using `all-MiniLM-L6-v2` from Hugging Face
 - 🔍 Searches relevant sections using FAISS
-- 💬 Generates answers using HuggingFaceH4/zephyr-7b-beta
-- ✅ Runs fully locally with only Hugging Face inference API
+- 💬 Generates answers using `HuggingFaceH4/zephyr-7b-beta`
+- ✅ Runs on Hugging Face Inference API
 
 ## 🧰 Tech Stack
 
@@ -22,30 +21,34 @@ It parses a legal PDF, chunks the text, embeds it into vectors using Hugging Fac
 | Text Chunking    | Custom Python function           |
 | Embedding        | `sentence-transformers`          |
 | Vector Search    | `faiss-cpu`                      |
-| LLM              | `HuggingFaceH4/zephyr-7b-beta`   |
-| Chat UI (optional) | `Streamlit` (not added yet)    |
+| LLM              | `HuggingFaceH4/zephyr-7b-beta`           |
+| Backend API      | `FastAPI`                        |
+| Frontend UI      | `React` (for chatbot interface)  |
 
 ## 📁 Folder Structure
 
 ```
 AI Legal Assistant/
+├── backend/
+│   └── app.py                    # FastAPI backend logic
 ├── data/
-│   └── IPC.pdf                     # Indian Penal Code PDF
+│   └── IPC.pdf                   # Indian Penal Code PDF
+├── embeddings.index              # FAISS vector index
+├── texts.npy                     # Saved chunks
 ├── utils/
-│   ├── pdf_reader.py              # Extracts text from PDF
-│   ├── chunker.py                 # Splits text into chunks
-│   └── embedder.py                # Creates embeddings
-├── embeddings.index               # FAISS vector index
-├── texts.npy                      # Saved chunks
-├── ingest.py                      # Run once to process PDF
-├── query_bot.py                   # Ask questions here
+│   ├── pdf_reader.py             # Extracts text from PDF
+│   ├── chunker.py                # Splits text into chunks
+│   └── embedder.py               # Creates embeddings
+├── frontend/                     # React app for chatbot UI
+├── ingest.py                     # Run once to process PDF
+├── query_bot.py                  # Optional terminal chatbot
 ├── requirements.txt
 └── README.md
 ```
 
-## ✅ How to Run
+## ✅ How to Run (Dev Setup)
 
-### 1. 📦 Install Requirements
+### 1. 📦 Install Python Requirements
 
 ```bash
 pip install -r requirements.txt
@@ -53,32 +56,38 @@ pip install -r requirements.txt
 
 ### 2. 📄 Prepare IPC PDF
 
-Place your IPC PDF in `data/IPC.pdf` (should be text-based, not scanned).
+Place your IPC PDF in `data/IPC.pdf` (text-based, not scanned).
 
-### 3. 🧠 Ingest PDF (Run once)
+### 3. 🧠 Ingest PDF
 
 ```bash
 python ingest.py
 ```
 
-### 4. 🤖 Start Chatbot
+### 4. 🚀 Start Backend
 
 ```bash
-python query_bot.py
+python -m uvicorn backend.app:app --reload
 ```
 
-Then type:
+### 5. 💬 Start Frontend
 
+```bash
+cd frontend
+npm install
+npm start
 ```
-Ask a legal question (or type 'exit' to quit): What is Section 302 of IPC?
-```
+
+### 6. 🧪 Chat with the Bot
+
+Visit [http://localhost:3000](http://localhost:3000) and start asking legal questions.
 
 ## 🔐 Hugging Face API Token
 
-Set your Hugging Face API token in `query_bot.py`:
+Set your Hugging Face API token in a `.env` file in your root directory:
 
-```python
-HF_API_TOKEN = "your_hf_token_here"
+```
+API_TOKEN=your_hf_token_here
 ```
 
 Get yours from: https://huggingface.co/settings/tokens
@@ -91,21 +100,20 @@ numpy
 requests
 sentence-transformers
 pymupdf
+fastapi
+uvicorn
+python-dotenv
 ```
-
-## 🎓 Learning Resources
-
-Full roadmap PDF with learning videos:  
-📥 `AI_Legal_Assistant_Learning_Roadmap.pdf` (included in this repo)
+(Frontend dependencies are in `frontend/package.json`)
 
 ## ✨ Credits
 
 Built with ❤️ by Vaibhav  
-LLM powered by Hugging Face `zephyr-7b-beta`.
+LLM powered by Hugging Face `HuggingFaceH4/zephyr-7b-beta`
 
 ## 🔜 What's Next?
 
-- 💬 Build a Streamlit chat interface
-- 🧠 Add source section highlighting
-- 💾 Save Q&A history in a DB
-- 🌐 Deploy online on Render/Streamlit Cloud
+- 💬 Improve UI styling in React
+- 🧠 Add section reference highlighting
+- 💾 Store Q&A history to SQLite or PostgreSQL
+- ☁️ Deploy fullstack app using Render + Vercel
