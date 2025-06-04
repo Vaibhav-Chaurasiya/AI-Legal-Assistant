@@ -1,4 +1,3 @@
-# backend/app.py
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -12,36 +11,36 @@ from dotenv import load_dotenv
 # Load environment variables
 load_dotenv()
 
-# Init FastAPI app
+# Initialize FastAPI app
 app = FastAPI()
 
-# Enable CORS for frontend
+# Enable CORS for frontend React app (adjust in production)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Change to ["http://localhost:3000"] in production
+    allow_origins=["http://localhost:3000"],  # 👈 safer than '*'
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Load model and FAISS index
+# Load SentenceTransformer model and FAISS index
 model = SentenceTransformer("all-MiniLM-L6-v2")
 index = faiss.read_index("embeddings.index")
 chunks = np.load("texts.npy", allow_pickle=True)
 
-# Hugging Face API details
+# Hugging Face API credentials
 HF_API_TOKEN = os.getenv("API_TOKEN")
-HF_MODEL_URL = "https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.1"
+HF_MODEL_URL = "https://api-inference.huggingface.co/models/HuggingFaceH4/zephyr-7b-beta"
 
-# Pydantic model for input
+# Pydantic model for input data
 class QuestionRequest(BaseModel):
     question: str
 
-# Helper to get embedding
+# Get embedding from input text
 def get_embedding(text):
     return model.encode(text)
 
-# Search similar text chunks
+# Search FAISS for top-k relevant chunks
 def search_chunks(query, top_k=3):
     if index.ntotal == 0:
         return ["⚠️ FAISS index is empty. Please run ingest.py first."]
@@ -49,7 +48,7 @@ def search_chunks(query, top_k=3):
     D, I = index.search(np.array([query_emb]).astype("float32"), top_k)
     return [chunks[i] for i in I[0] if 0 <= i < len(chunks)]
 
-# Generate answer using HF model
+# Call Hugging Face API to generate answer
 def generate_answer(context_chunks, question):
     if "⚠️" in context_chunks[0]:
         return context_chunks[0]
@@ -84,19 +83,32 @@ Answer:"""
     else:
         return f"❌ Error {response.status_code}: {response.text}"
 
-# POST endpoint to handle legal queries
+# POST endpoint: handle legal query from React frontend
 @app.post("/ask")
 def ask_question(data: QuestionRequest):
-    chunks_found = search_chunks(data.question)
-    answer = generate_answer(chunks_found, data.question)
-    return {"question": data.question, "answer": answer, "context": chunks_found}
+    try:
+        print(f"🟡 Received question: {data.question}")
+        chunks_found = search_chunks(data.question)
+        print(f"🟢 Top chunk: {chunks_found[0] if chunks_found else 'None'}")
+        answer = generate_answer(chunks_found, data.question)
+        return {
+            "question": data.question,
+            "answer": answer,
+            "context": chunks_found
+        }
+    except Exception as e:
+        print(f"🔴 Error processing question: {e}")
+        return {
+            "error": str(e),
+            "message": "❌ Internal server error."
+        }
 
-# GET route for testing server is running
+# Basic test route
 @app.get("/")
 def root():
     return {"message": "✅ AI Legal Assistant backend is running."}
 
-# Optional: Health check endpoint
+# Optional health check route
 @app.get("/health")
 def health_check():
     return {"status": "ok", "faiss_index_loaded": index.ntotal > 0}
